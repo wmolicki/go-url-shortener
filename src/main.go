@@ -2,23 +2,21 @@ package main
 
 import (
 	"fmt"
-	"go-url-shortener/handlers"
 	"net/http"
-	"strconv"
 	"strings"
 	"text/template"
+
+	"go-url-shortener/dal"
+	"go-url-shortener/handlers"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
-	db := MustGetDb()
+	db := dal.MustGetDb()
 	router := mux.NewRouter()
 
 	indexTemplate := template.Must(template.ParseFiles("static/index.html"))
-
-	urlIdIndex := 0
-	simpleDB := make(map[string]string)
 	baseUrl := "localhost:8080"
 
 	router.HandleFunc(
@@ -51,11 +49,10 @@ func main() {
 				url = "https://" + url
 			}
 
-			key := strconv.Itoa(urlIdIndex)
-			simpleDB[key] = url
-			urlIdIndex++
+			userAgent := r.Header.Get("User-Agent")
+			shortened := dal.InsertShortenedURL(db, url, userAgent)
 
-			http.Redirect(w, r, fmt.Sprintf("/success?s=%s", key), http.StatusSeeOther)
+			http.Redirect(w, r, fmt.Sprintf("/success?s=%s", shortened), http.StatusSeeOther)
 
 		}).Methods(http.MethodPost)
 
@@ -65,7 +62,7 @@ func main() {
 			vars := mux.Vars(r)
 			urlId := vars["urlId"]
 
-			redirectURL, exists := simpleDB[urlId]
+			redirectURL, exists := dal.GetOriginalURL(db, urlId)
 
 			if exists == false {
 				w.WriteHeader(http.StatusNotFound)
