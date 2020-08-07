@@ -31,8 +31,6 @@ func main() {
 	router.HandleFunc(
 		"/{urlId}", handlers.RedirectHandler(db)).Methods(http.MethodGet)
 
-	
-
 	err := http.ListenAndServe(baseUrl, router)
 	if err != nil {
 		panic(fmt.Sprintf("canot start server because: %s", err.Error()))
